@@ -59,6 +59,39 @@ describe('reactions', () => {
       for (const b of MOLECULE_LIST)
         if (a !== b) expect(compEquals(a.composition, b.composition)).toBe(false)
   })
+
+  it('분자 구조의 원자 목록이 조성과 일치하고 결합 인덱스가 유효함', () => {
+    for (const m of MOLECULE_LIST) {
+      const counted: Record<string, number> = {}
+      for (const [el] of m.structure.atoms) counted[el] = (counted[el] ?? 0) + 1
+      expect(counted, m.id).toEqual(m.composition)
+      for (const [a, b] of m.structure.bonds) {
+        expect(a, m.id).toBeLessThan(m.structure.atoms.length)
+        expect(b, m.id).toBeLessThan(m.structure.atoms.length)
+        expect(a, m.id).not.toBe(b)
+      }
+      // 모든 원자가 결합으로 이어져 있음
+      const linked = new Set(m.structure.bonds.flatMap(([a, b]) => [a, b]))
+      expect(linked.size, m.id).toBe(m.structure.atoms.length)
+    }
+  })
+
+  it('비활성 기체는 어떤 분자에도 들어가지 않음', () => {
+    for (const m of MOLECULE_LIST) for (const el of Object.keys(m.composition)) expect(ELEMENTS[el].category, `${m.id}: ${el}`).not.toBe('noble')
+    expect(combine(atom('He'), atom('H'), false)).toBeNull()
+  })
+
+  it('새 접촉 반응: Li/Ca/CaO + 물, H₂ + F₂', () => {
+    expect(findContactReaction('Li', 'H2O')?.id).toBe('li-water')
+    expect(findContactReaction('Ca', 'H2O')?.id).toBe('ca-water')
+    expect(findContactReaction('CaO', 'H2O')?.id).toBe('cao-water')
+    expect(findContactReaction('F2', 'H2')?.id).toBe('h2-f2')
+  })
+
+  it('점화: Fe + S가 단독 Fe·S 연소보다 우선', () => {
+    const ids = matchFireReactions([{ species: 'Fe' }, { species: 'S' }, { species: 'S' }]).map((m) => m.reaction.id)
+    expect(ids).toEqual(['fe-s', 's-burn'])
+  })
 })
 
 describe('formatFormula', () => {
