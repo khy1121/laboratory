@@ -1,0 +1,104 @@
+$radius: 12px;
+
+.tile {
+  --c: #ffffff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: $radius;
+  border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);
+  background:
+    radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--c) 22%, transparent), transparent 60%),
+    #0b1322;
+  cursor: grab;
+  touch-action: none;
+  transition:
+    transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+
+  &:hover {
+    transform: translateY(-2px) scale(1.04);
+    border-color: color-mix(in srgb, var(--c) 80%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--c) 30%, transparent),
+      0 8px 24px -6px color-mix(in srgb, var(--c) 55%, transparent);
+  }
+
+  &:active {
+    cursor: grabbing;
+    transform: scale(0.96);
+  }
+}
+
+// 현재 미션 재료
+.highlight {
+  border-color: #ffb627;
+  animation: pulse 1.6s ease-in-out infinite;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ffb627;
+    box-shadow: 0 0 8px #ffb627;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 182, 39, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 182, 39, 0);
+  }
+}
+
+.number {
+  position: absolute;
+  top: 5px;
+  left: 7px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7f9e;
+}
+
+.symbol {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--c);
+  text-shadow: 0 0 14px color-mix(in srgb, var(--c) 60%, transparent);
+}
+
+.name {
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: #9fb3d1;
+}
+
+.reagent {
+  aspect-ratio: auto;
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+
+  .symbol {
+    font-size: 15px;
+    min-width: 42px;
+  }
+
+  .name {
+    margin-top: 0;
+    font-size: 12px;
+  }
+}
