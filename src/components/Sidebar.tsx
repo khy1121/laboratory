@@ -12,6 +12,8 @@ const CATEGORY_LABEL = {
   alkali: '알칼리 금속',
   alkaline: '알칼리 토금속',
   halogen: '할로젠',
+  noble: '비활성 기체',
+  transition: '전이 금속',
 } as const
 
 const NO_MATERIALS: string[] = []

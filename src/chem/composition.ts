@@ -2,8 +2,8 @@ import { ELEMENTS } from './elements'
 import { MOLECULES } from './molecules'
 import type { Composition } from './types'
 
-/** 화학식 표기 순서: 금속 → 탄소 → 질소 → 수소 → 할로젠 → 산소 */
-const ORDER = ['K', 'Na', 'Mg', 'C', 'N', 'H', 'Cl', 'O']
+/** 화학식 표기 순서: 금속 → 탄소 → 질소 → 수소 → 황 → 할로젠 → 산소 */
+const ORDER = ['K', 'Na', 'Li', 'Ca', 'Mg', 'Fe', 'C', 'N', 'H', 'S', 'F', 'Cl', 'O']
 const SUB = '₀₁₂₃₄₅₆₇₈₉'
 
 const rank = (el: string) => {

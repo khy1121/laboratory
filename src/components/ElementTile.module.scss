@@ -64,15 +64,16 @@ $radius: 12px;
 
 .number {
   position: absolute;
-  top: 5px;
-  left: 7px;
-  font-size: 10px;
+  top: 4px;
+  left: 6px;
+  font-size: 9px;
   font-weight: 600;
   color: #6b7f9e;
 }
 
 .symbol {
-  font-size: 22px;
+  margin-top: 11px;
+  font-size: 19px;
   font-weight: 800;
   line-height: 1;
   color: var(--c);
@@ -93,8 +94,9 @@ $radius: 12px;
   padding: 8px 10px;
 
   .symbol {
+    margin-top: 0;
     font-size: 15px;
-    min-width: 42px;
+    min-width: 50px;
   }
 
   .name {
