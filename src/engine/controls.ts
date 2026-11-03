@@ -43,9 +43,11 @@ export function connectWorldToStore() {
       }
       case 'nothing':
         s.pushToast(
-          e.reason === 'molecules'
-            ? '완성된 분자끼리는 붙지 않아요. 불을 붙이거나 다른 물질과 만나게 해 보세요.'
-            : '이 조합으로는 분자를 만들 수 없어요.',
+          e.reason === 'noble'
+            ? '비활성 기체는 전자껍질이 꽉 차서 어떤 원자와도 결합하지 않아요.'
+            : e.reason === 'molecules'
+              ? '완성된 분자끼리는 붙지 않아요. 불을 붙이거나 다른 물질과 만나게 해 보세요.'
+              : '이 조합으로는 분자를 만들 수 없어요.',
           'muted',
         )
         break

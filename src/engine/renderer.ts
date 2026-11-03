@@ -1,5 +1,7 @@
 import { speciesLabel, speciesName } from '../chem/composition'
 import { ELEMENTS } from '../chem/elements'
+import type { BondOrder } from '../chem/types'
+import type { LayoutAtom } from './layout'
 import type { Entity, LabWorld, Preview } from './world'
 
 export interface ViewState {
@@ -213,21 +215,19 @@ export class Renderer {
       ctx.stroke()
     }
 
-    // 결합선
     const { atoms, bonds } = e.layout
-    ctx.lineCap = 'round'
-    for (const [i, j] of bonds) {
-      ctx.strokeStyle = 'rgba(220, 235, 255, 0.45)'
-      ctx.lineWidth = 7
-      ctx.beginPath()
-      ctx.moveTo(atoms[i].dx, atoms[i].dy)
-      ctx.lineTo(atoms[j].dx, atoms[j].dy)
-      ctx.stroke()
-    }
+    const lone = atoms.length === 1 && !isCluster
 
-    // 원자: 아래쪽부터 그려 입체감
-    const order = atoms.map((_, i) => i).sort((a, b) => atoms[a].dy - atoms[b].dy)
+    // 홑원자: 원자가 전자가 도는 전자껍질
+    if (lone) this.drawElectronShell(atoms[0], world.time + e.id)
+
+    // 결합선: 뒤쪽 원자에 붙은 결합부터
+    const bondOrder = [...bonds].sort((p, q) => Math.min(atoms[p.a].z, atoms[p.b].z) - Math.min(atoms[q.a].z, atoms[q.b].z))
     if (isCluster) ctx.globalAlpha = 0.75
+    for (const b of bondOrder) this.drawBond(atoms[b.a], atoms[b.b], b.order, isCluster)
+
+    // 원자: 뒤쪽(z 작음) → 아래쪽 순으로 그려 입체감
+    const order = atoms.map((_, i) => i).sort((a, b) => atoms[a].z - atoms[b].z || atoms[a].dy - atoms[b].dy)
     for (const i of order) {
       const a = atoms[i]
       const sp = this.atomSprite(a.el, a.r)
@@ -235,6 +235,13 @@ export class Renderer {
       ctx.drawImage(sp, a.dx - size / 2, a.dy - size / 2, size, size)
     }
     ctx.globalAlpha = 1
+
+    // 이온 결합의 전하 표시
+    for (const b of bonds) {
+      if (b.order !== 'ion') continue
+      this.drawCharge(atoms[b.a], '+')
+      this.drawCharge(atoms[b.b], '−')
+    }
     ctx.restore()
 
     // 라벨
@@ -261,6 +268,83 @@ export class Renderer {
       ctx.fillStyle = view.preview.kind === 'react' ? '#ffa94d' : '#63e6be'
       ctx.fillText(view.preview.kind === 'react' ? '⚠ 반응!' : '+ 결합', e.x, e.y - e.r - 26)
     }
+  }
+
+  /** 단일/이중/삼중 결합은 평행선 묶음, 이온 결합은 점선 */
+  private drawBond(a: LayoutAtom, b: LayoutAtom, order: BondOrder, dim: boolean) {
+    const { ctx } = this
+    const dx = b.dx - a.dx
+    const dy = b.dy - a.dy
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len
+    const ny = dx / len
+    ctx.save()
+    ctx.lineCap = 'round'
+    if (order === 'ion') {
+      ctx.setLineDash([3, 5])
+      ctx.strokeStyle = dim ? 'rgba(220, 235, 255, 0.3)' : 'rgba(255, 220, 130, 0.7)'
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.moveTo(a.dx, a.dy)
+      ctx.lineTo(b.dx, b.dy)
+      ctx.stroke()
+      ctx.restore()
+      return
+    }
+    const n = order
+    const gap = n === 1 ? 0 : n === 2 ? 4.5 : 5
+    const width = n === 1 ? 7 : n === 2 ? 4 : 3
+    ctx.strokeStyle = 'rgba(220, 235, 255, 0.5)'
+    ctx.lineWidth = width
+    for (let k = 0; k < n; k++) {
+      const off = (k - (n - 1) / 2) * gap * 2
+      ctx.beginPath()
+      ctx.moveTo(a.dx + nx * off, a.dy + ny * off)
+      ctx.lineTo(b.dx + nx * off, b.dy + ny * off)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  /** 홑원자 둘레에 원자가 전자가 도는 껍질 */
+  private drawElectronShell(a: LayoutAtom, t: number) {
+    const { ctx } = this
+    const el = ELEMENTS[a.el]
+    const n = el.valenceElectrons
+    const R = a.r + 9
+    ctx.save()
+    ctx.strokeStyle = 'rgba(160, 200, 255, 0.22)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(a.dx, a.dy, R, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.fillStyle = '#9ad8ff'
+    ctx.shadowColor = '#9ad8ff'
+    ctx.shadowBlur = 6
+    for (let i = 0; i < n; i++) {
+      const ang = t * 1.3 + (i / n) * Math.PI * 2
+      ctx.beginPath()
+      ctx.arc(a.dx + Math.cos(ang) * R, a.dy + Math.sin(ang) * R, 2.2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  private drawCharge(a: LayoutAtom, sign: '+' | '−') {
+    const { ctx } = this
+    const x = a.dx + a.r * 0.72
+    const y = a.dy - a.r * 0.72
+    ctx.save()
+    ctx.fillStyle = sign === '+' ? '#ff6b6b' : '#4dabf7'
+    ctx.beginPath()
+    ctx.arc(x, y, 6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#ffffff'
+    ctx.font = `900 9px ${FONT}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(sign, x, y + 0.5)
+    ctx.restore()
   }
 
   private drawCursor(world: LabWorld, view: ViewState) {

@@ -1,5 +1,5 @@
 import { isAtom, isMolecule, speciesComposition } from '../chem/composition'
-import { ELEMENTS } from '../chem/elements'
+import { ELEMENTS, isNoble } from '../chem/elements'
 import { MOLECULES } from '../chem/molecules'
 import { combine, findContactReaction, matchFireReactions } from '../chem/reactor'
 import type { Composition, ReactionDef } from '../chem/types'
@@ -30,7 +30,7 @@ export type WorldEvent =
   | { type: 'reaction'; reaction: ReactionDef; x: number; y: number }
   /** via: 결합으로 생겼으면 'bond', 반응 생성물이면 반응 id */
   | { type: 'spawned'; species: string | null; source: SpawnSource; via?: string }
-  | { type: 'nothing'; reason: 'molecules' | 'incompatible' }
+  | { type: 'nothing'; reason: 'molecules' | 'incompatible' | 'noble' }
   | { type: 'ignite-empty' }
   | { type: 'ignited'; count: number }
 
@@ -80,7 +80,7 @@ export class LabWorld {
   }
 
   private spawnComp(species: string | null, comp: Composition, x: number, y: number, source: SpawnSource, vx = 0, vy = 0, via?: string): Entity {
-    const layout = computeLayout(comp)
+    const layout = computeLayout(comp, species)
     const e: Entity = {
       id: this.nextId++,
       species,
@@ -147,6 +147,7 @@ export class LabWorld {
 
   preview(a: Entity, b: Entity): Preview {
     if (findContactReaction(a.species, b.species)) return 'react'
+    if ([a, b].some((e) => Object.keys(e.comp).some(isNoble))) return 'none'
     return combine(a.comp, b.comp, isMolecule(a.species) && isMolecule(b.species)) ? 'bond' : 'none'
   }
 
@@ -165,11 +166,12 @@ export class LabWorld {
     }
 
     const bothMolecules = isMolecule(a.species) && isMolecule(b.species)
-    const result = combine(a.comp, b.comp, bothMolecules)
+    const noble = [a, b].some((e) => Object.keys(e.comp).some(isNoble))
+    const result = noble ? null : combine(a.comp, b.comp, bothMolecules)
     if (!result) {
       playFail(this.fx, (a.x + b.x) / 2, (a.y + b.y) / 2)
-      this.pushApart(a, b, 260)
-      this.emit({ type: 'nothing', reason: bothMolecules ? 'molecules' : 'incompatible' })
+      this.pushApart(a, b, noble ? 420 : 260)
+      this.emit({ type: 'nothing', reason: noble ? 'noble' : bothMolecules ? 'molecules' : 'incompatible' })
       return
     }
 
@@ -332,3 +334,6 @@ export class LabWorld {
 /** 앱 전체에서 공유하는 실험대 인스턴스 */
 export const world = new LabWorld()
 export const benchRef: { el: HTMLCanvasElement | null } = { el: null }
+
+// 개발 중 브라우저 콘솔·자동화 스크립트에서 바로 다룰 수 있게
+if (import.meta.env.DEV) (window as unknown as { __lab: LabWorld }).__lab = world
